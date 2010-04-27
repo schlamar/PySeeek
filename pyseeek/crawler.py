@@ -1,4 +1,3 @@
-import time
 import urllib
 import urlparse
 
@@ -10,7 +9,7 @@ DEFAULT_ENCODING = 'utf-8'
 USER_AGENT = 'PySeeek-Bot'
 
 opener = build_opener()
-opener.addheaders = [('User-agent', USER_AGENT)]
+opener.addheaders = [('User-Agent', USER_AGENT)]
 
 def normalize_url(url):
     ''' Modified from `werkzeug.utils.url_fix`. '''
