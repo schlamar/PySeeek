@@ -36,6 +36,11 @@ def parse_content_type(response):
         
     return ctype, encoding
     
+def tokenizer(text):
+    pattern = re.compile(r'[A-Za-z]{3,}')
+    for match in pattern.finditer(text):
+        yield match.group(0).lower()
+    
 class Host(object):
     def __init__(self, hostname):
         self.hostname = hostname
