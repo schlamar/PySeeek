@@ -55,6 +55,7 @@ class Crawler(object):
     def __init__(self, urls):
         self.hosts = dict()        
         self.urls = set()
+        self.handled_urls = set()
         
         self.opener = build_opener()
         self.opener.addheaders = [('User-agent', USER_AGENT)]
@@ -101,6 +102,9 @@ class Crawler(object):
          
     def add_urls(self, urls):
         for url in urls:
+            if url in self.handled_urls:
+                continue
+            
             hostname = urlparse.urlparse(url).hostname
             try:
                 host = self.hosts[hostname]
@@ -121,6 +125,7 @@ class Crawler(object):
                 url = self.get_url_to_process()
                 continue
             print 'Processed:', url, title
+            self.handled_urls.add(url)
             self.add_urls(links)
             
             url = self.get_url_to_process()
