@@ -1,7 +1,8 @@
+import time
 import urllib
 import urlparse
 
-from urllib2 import build_opener, URLError 
+from urllib2 import build_opener, URLError, HTTPError
 
 from lxml import html
 
@@ -34,14 +35,31 @@ def parse_content_type(response):
             raise URLError('Could not parse Content-Type: "%s"' % ctype)
         
     return ctype, encoding
+    
+class Host(object):
+    def __init__(self, hostname):
+        self.hostname = hostname
+        self.last_access = 0
+        
+        self.delay = 0 
+        
+    @property
+    def visit_allowed(self):
+        if (self.last_access + self.delay) < time.time():
+            # this host will be visited now, set new timestamp
+            self.last_access = time.time()
+            return True
+        return False
 
 class Crawler(object):
-    def __init__(self):
+    def __init__(self, urls):
         self.hosts = dict()        
         self.urls = set()
         
         self.opener = build_opener()
         self.opener.addheaders = [('User-agent', USER_AGENT)]
+        
+        self.add_urls(urls)
 
         
     def parse_page(self, url):
@@ -52,7 +70,7 @@ class Crawler(object):
             raise URLError('Wrong Content-Type: "%s"' % ctype)
             
         doc = html.parse(response).getroot()
-        title = doc.xpath("//title/text()")[0]
+        title = doc.xpath("//title/text()")[0].encode(encoding)
         content = doc.text_content().encode(encoding)
         
         links = set()
@@ -61,8 +79,52 @@ class Crawler(object):
             url = normalize_url(link)
             links.add(url)
                 
-        return title, content, links 
+        return title, content, links
+      
+      
+    def get_url_to_process(self):
+        while True:
+            try:
+                url = self.urls.pop()
+            except KeyError:
+                return None
+                
+            hostname = urlparse.urlparse(url).hostname
+            host = self.hosts[hostname]
+                
+            if host.visit_allowed:
+                return url
+            else:
+                # put url back, not processed yet
+                self.urls.add(url)
+         
+         
+    def add_urls(self, urls):
+        for url in urls:
+            hostname = urlparse.urlparse(url).hostname
+            try:
+                host = self.hosts[hostname]
+            except KeyError:
+                host = Host(hostname)
+                self.hosts[hostname] = host
+                
+            self.urls.add(url)
+       
+       
+    def crawl(self):
+        url = self.get_url_to_process()
+        while url is not None:
+            try:
+                title, _, links = self.parse_page(url)
+            except (URLError, HTTPError) as e:
+                print e.__class__.__name__, e
+                url = self.get_url_to_process()
+                continue
+            print 'Processed:', url, title
+            self.add_urls(links)
+            
+            url = self.get_url_to_process()
 
 url = 'http://sitforc.ms4py.org/'
-crawler = Crawler()
-title, content, links = crawler.parse_page(normalize_url(url))
+crawler = Crawler([url])
+crawler.crawl()
