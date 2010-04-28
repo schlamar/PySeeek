@@ -8,9 +8,6 @@ from lxml import html
 DEFAULT_ENCODING = 'utf-8'
 USER_AGENT = 'PySeeek-Bot'
 
-opener = build_opener()
-opener.addheaders = [('User-Agent', USER_AGENT)]
-
 def normalize_url(url):
     ''' Modified from `werkzeug.utils.url_fix`. '''
     
@@ -38,24 +35,34 @@ def parse_content_type(response):
         
     return ctype, encoding
 
-def parse_page(url):
-    response = opener.open(url)
-    ctype, encoding = parse_content_type(response)
-    
-    if not ctype == 'text/html':
-        raise URLError('Wrong Content-Type: "%s"' % ctype)
+class Crawler(object):
+    def __init__(self):
+        self.hosts = dict()        
+        self.urls = set()
         
-    doc = html.parse(response).getroot()
-    title = doc.xpath("//title/text()")[0]
-    content = doc.text_content().encode(encoding)
-    
-    links = set()
-    doc.make_links_absolute()
-    for _, _, link, _ in doc.iterlinks():
-        url = normalize_url(link)
-        links.add(url)
+        self.opener = build_opener()
+        self.opener.addheaders = [('User-agent', USER_AGENT)]
+
+        
+    def parse_page(self, url):
+        response = self.opener.open(url)
+        ctype, encoding = parse_content_type(response)
+        
+        if not ctype == 'text/html':
+            raise URLError('Wrong Content-Type: "%s"' % ctype)
             
-    return title, content, links 
+        doc = html.parse(response).getroot()
+        title = doc.xpath("//title/text()")[0]
+        content = doc.text_content().encode(encoding)
+        
+        links = set()
+        doc.make_links_absolute()
+        for _, _, link, _ in doc.iterlinks():
+            url = normalize_url(link)
+            links.add(url)
+                
+        return title, content, links 
 
 url = 'http://sitforc.ms4py.org/'
-title, content, links = parse_page(normalize_url(url))
+crawler = Crawler()
+title, content, links = crawler.parse_page(normalize_url(url))
