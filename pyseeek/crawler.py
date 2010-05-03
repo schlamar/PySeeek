@@ -2,11 +2,11 @@ import time
 import urllib
 import urlparse
 
+from robotparser import RobotFileParser
 from urllib2 import build_opener, URLError, HTTPError
 
 from lxml import html
 
-DEFAULT_ENCODING = 'utf-8'
 USER_AGENT = 'PySeeek-Bot'
 
 def normalize_url(url):
@@ -23,18 +23,11 @@ def parse_content_type(response):
     except KeyError:
         raise URLError('No Content-Type defined.')
     try:
-        ctype, encoding = ctype.split(';')
-        # encoding is now "charset=enc"
-        _, encoding = encoding.split('=')
-    except ValueError:
-        # no or wrong encoding definition, use default
-        encoding = DEFAULT_ENCODING
-        try:
-            ctype = ctype.split(';')[0]
-        except IndexError:
-            raise URLError('Could not parse Content-Type: "%s"' % ctype)
+        ctype = ctype.split(';')[0]
+    except IndexError:
+        raise URLError('Could not parse Content-Type: "%s"' % ctype)
         
-    return ctype, encoding
+    return ctype
     
 def tokenizer(text):
     pattern = re.compile(r'[A-Za-z]{3,}')
@@ -45,6 +38,10 @@ class Host(object):
     def __init__(self, hostname):
         self.hostname = hostname
         self.last_access = 0
+        
+        robots_url = 'http://%s/robots.txt' % self.hostname
+        self.rp = RobotFileParser()
+        self.rp.set_url(robots_url)
         
         self.delay = 0 
         
@@ -70,20 +67,26 @@ class Crawler(object):
         
     def parse_page(self, url):
         response = self.opener.open(url)
-        ctype, encoding = parse_content_type(response)
+        ctype = parse_content_type(response)
         
         if not ctype == 'text/html':
             raise URLError('Wrong Content-Type: "%s"' % ctype)
             
         doc = html.parse(response).getroot()
-        title = doc.xpath("//title/text()")[0].encode(encoding)
-        content = doc.text_content().encode(encoding)
+        if doc is None:
+            return None, None, None
+        try:
+            title = doc.xpath("//title/text()")[0].encode('utf-8')
+        except IndexError:
+            title = ''
+        content = doc.text_content().encode('utf-8')
         
         links = set()
         doc.make_links_absolute()
         for _, _, link, _ in doc.iterlinks():
-            url = normalize_url(link)
-            links.add(url)
+            url = normalize_url(link.encode('utf-8'))
+            if url:
+                links.add(url)
                 
         return title, content, links
       
@@ -114,10 +117,10 @@ class Crawler(object):
             try:
                 host = self.hosts[hostname]
             except KeyError:
-                host = Host(hostname)
-                self.hosts[hostname] = host
-                
-            self.urls.add(url)
+                self.hosts[hostname] = host = Host(hostname)
+            
+            if host.rp.can_fetch(USER_AGENT, url):
+                self.urls.add(url)
        
        
     def crawl(self):
@@ -131,10 +134,10 @@ class Crawler(object):
                 continue
             print 'Processed:', url, title
             self.handled_urls.add(url)
-            self.add_urls(links)
+            if links is not None:
+                self.add_urls(links)
             
             url = self.get_url_to_process()
 
-url = 'http://sitforc.ms4py.org/'
-crawler = Crawler([url])
+crawler = Crawler(['http://web.de/', 'http://www.welt.de/', 'http://www.bild.de/'])
 crawler.crawl()
