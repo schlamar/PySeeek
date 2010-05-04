@@ -10,8 +10,11 @@
     :license: MIT, see LICENSE for more details.
 '''
 
+import re
 import urllib
 import urlparse
+
+from urllib2 import URLError
 
 def normalize_url(url):
     ''' Modified from `werkzeug.urls.url_fix`. 

@@ -1,2 +1,5 @@
 syntax: glob
 res/
+nbproject/
+pyseeek/urls.log
+*.pyc
