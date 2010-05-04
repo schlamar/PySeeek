@@ -39,20 +39,10 @@ def tokenize(text):
 class Host(object):
     def __init__(self, hostname):
         self.hostname = hostname
-        self.last_access = 0
         
         self.rp = RobotFileParser()
         self.rp.set_url('http://%s/robots.txt' % self.hostname)
         
-        self.delay = HOST_DELAY
-        
-    @property
-    def visit_allowed(self):
-        if (self.last_access + self.delay) < time.time():
-            # this host will be visited now, set new timestamp
-            self.last_access = time.time()
-            return True
-        return False
 
 class Crawler(object):
     def __init__(self, urls):
@@ -104,20 +94,10 @@ class Crawler(object):
       
       
     def get_url_to_process(self):
-        while True:
-            try:
-                url = self.urls.pop()
-            except KeyError:
-                return None
-                
-            hostname = urlparse.urlparse(url).hostname
-            host = self.hosts[hostname]
-                
-            if host.visit_allowed:
-                return url
-            else:
-                # put url back, not processed yet
-                self.urls.add(url)
+        try:
+           return self.urls.pop()
+        except KeyError:
+            return None
          
          
     def add_urls(self, urls):
