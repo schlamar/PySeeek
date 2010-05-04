@@ -1,5 +1,16 @@
 # coding: utf-8
 
+'''
+    pyseeek.crawler
+    ~~~~~~~~~~~~~~~
+
+    This module is responsible for crawling pages.
+    See the __main__ section for basic usage.
+    
+    :copyright: (c) 2010 by Marc Schlaich
+    :license: MIT, see LICENSE for more details.
+'''
+
 import httplib
 import time
 import urllib
@@ -9,6 +20,8 @@ from robotparser import RobotFileParser
 from urllib2 import build_opener, URLError, HTTPError
 
 from lxml import html
+
+from utils import normalize_url, parse_content_type
 
 HOST_DELAY = 0
 USER_AGENT = 'PySeeek-Bot'
@@ -98,7 +111,8 @@ class Crawler(object):
         while url is not None:
             try:
                 title, content, links = self.parse_page(url)
-            except (URLError, HTTPError, httplib.InvalidURL, UnicodeDecodeError):
+            except (URLError, HTTPError, httplib.InvalidURL, 
+                    UnicodeDecodeError):
                 self.invalid_urls.add(url)
                 url = self.get_url_to_process()
                 continue
@@ -109,17 +123,18 @@ class Crawler(object):
             
             url = self.get_url_to_process()
 
-crawler = Crawler(['http://web.de/', 'http://www.welt.de/', 
-                   'http://www.bild.de/'])
-try:
-    crawler.crawl()
-except KeyboardInterrupt:
-    with open('urls.log', 'w') as fobj:
-        print >> fobj, '''\
+if __name__ == '__main__':
+    crawler = Crawler(['http://web.de/', 'http://www.welt.de/', 
+                       'http://www.bild.de/'])
+    try:
+        crawler.crawl()
+    except KeyboardInterrupt:
+        with open('urls.log', 'w') as fobj:
+            print >> fobj, '''\
 Total runtime: %d min
 Pages processed: %d
 Average: %.3f Pages/s %.3f Pages/min 
 ''' % (crawler.runtime/60.0, len(crawler.handled_urls), 
        crawler.parse_average, crawler.parse_average*60)
-        for url in crawler.handled_urls:
-            print >> fobj, 'Processed:', url
+            for url in crawler.handled_urls:
+                print >> fobj, 'Processed:', url

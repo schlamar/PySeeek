@@ -1,5 +1,15 @@
 # coding: utf-8
 
+'''
+    pyseeek.utils
+    ~~~~~~~~~~~~~
+
+    Some utilities for parsing and indexing pages.
+    
+    :copyright: (c) 2010 by Marc Schlaich
+    :license: MIT, see LICENSE for more details.
+'''
+
 def normalize_url(url):
     ''' Modified from `werkzeug.utils.url_fix`. '''
     
