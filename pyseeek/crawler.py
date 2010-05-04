@@ -22,7 +22,6 @@ from lxml import html
 
 from utils import normalize_url, parse_content_type
 
-HOST_DELAY = 0
 USER_AGENT = 'PySeeek-Bot'
     
 class Host(object):
