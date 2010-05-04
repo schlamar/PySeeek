@@ -1,3 +1,4 @@
+import httplib
 import time
 import urllib
 import urlparse
@@ -7,6 +8,7 @@ from urllib2 import build_opener, URLError, HTTPError
 
 from lxml import html
 
+HOST_DELAY = 0
 USER_AGENT = 'PySeeek-Bot'
 
 def normalize_url(url):
@@ -29,7 +31,7 @@ def parse_content_type(response):
         
     return ctype
     
-def tokenizer(text):
+def tokenize(text):
     pattern = re.compile(r'[A-Za-z]{3,}')
     for match in pattern.finditer(text):
         yield match.group(0).lower()
@@ -39,11 +41,10 @@ class Host(object):
         self.hostname = hostname
         self.last_access = 0
         
-        robots_url = 'http://%s/robots.txt' % self.hostname
         self.rp = RobotFileParser()
-        self.rp.set_url(robots_url)
+        self.rp.set_url('http://%s/robots.txt' % self.hostname)
         
-        self.delay = 0 
+        self.delay = HOST_DELAY
         
     @property
     def visit_allowed(self):
@@ -58,12 +59,22 @@ class Crawler(object):
         self.hosts = dict()        
         self.urls = set()
         self.handled_urls = set()
+        self.invalid_urls = set()
         
         self.opener = build_opener()
         self.opener.addheaders = [('User-agent', USER_AGENT)]
         
         self.add_urls(urls)
+        
+        self.start = 0.0
 
+    @property
+    def runtime(self):
+        return time.time() - self.start
+        
+    @property
+    def parse_average(self):
+        return len(self.handled_urls) / self.runtime
         
     def parse_page(self, url):
         response = self.opener.open(url)
@@ -78,7 +89,8 @@ class Crawler(object):
         try:
             title = doc.xpath("//title/text()")[0].encode('utf-8')
         except IndexError:
-            title = ''
+            title = None
+            
         content = doc.text_content().encode('utf-8')
         
         links = set()
@@ -110,7 +122,7 @@ class Crawler(object):
          
     def add_urls(self, urls):
         for url in urls:
-            if url in self.handled_urls:
+            if url in self.handled_urls or url in self.invalid_urls:
                 continue
             
             hostname = urlparse.urlparse(url).hostname
@@ -124,20 +136,33 @@ class Crawler(object):
        
        
     def crawl(self):
+        self.start = time.time()
         url = self.get_url_to_process()
         while url is not None:
             try:
-                title, _, links = self.parse_page(url)
-            except (URLError, HTTPError) as e:
-                print e.__class__.__name__, e
+                title, content, links = self.parse_page(url)
+            except (URLError, HTTPError, httplib.InvalidURL, UnicodeDecodeError):
+                self.invalid_urls.add(url)
                 url = self.get_url_to_process()
                 continue
-            print 'Processed:', url, title
+            
             self.handled_urls.add(url)
             if links is not None:
                 self.add_urls(links)
             
             url = self.get_url_to_process()
 
-crawler = Crawler(['http://web.de/', 'http://www.welt.de/', 'http://www.bild.de/'])
-crawler.crawl()
+crawler = Crawler(['http://web.de/', 'http://www.welt.de/', 
+                   'http://www.bild.de/'])
+try:
+    crawler.crawl()
+except KeyboardInterrupt:
+    with open('urls.log', 'w') as fobj:
+        print >> fobj, '''\
+Total runtime: %d min
+Pages processed: %d
+Average: %.3f Pages/s %.3f Pages/min 
+''' % (crawler.runtime/60.0, len(crawler.handled_urls), 
+       crawler.parse_average, crawler.parse_average*60)
+        for url in crawler.handled_urls:
+            print >> fobj, 'Processed:', url
