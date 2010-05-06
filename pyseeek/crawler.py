@@ -212,10 +212,15 @@ Average: %.3f Pages/s %.3f Pages/min
                 links.add(url)
 
         return title, content, links
-
-if __name__ == '__main__':
-    admin = CrawlerAdministrator(['http://web.de/', 'http://www.welt.de/',
-                                  'http://www.bild.de/'])
+        
+def start_crawling(urls):
+    ''' Starts the crawler administrator with the given URLs
+    and runs a loop waiting for  ``KeyboardInterrupt`` afterwards.
+    On interrput, it stops the crawlers and logs some data.
+    
+     :param urls: list of URLs which should be crawled.
+    '''
+    admin = CrawlerAdministrator(urls)
     try:
         admin.crawl()
         while True:
@@ -226,3 +231,8 @@ if __name__ == '__main__':
             print >> fobj, admin.statistics
             for url in admin.handled_urls:
                 print >> fobj, 'Processed:', url
+    
+
+if __name__ == '__main__':
+    start_crawling(['http://web.de/', 'http://www.welt.de/',
+                    'http://www.bild.de/'])
