@@ -149,6 +149,15 @@ class Crawler(Thread):
         self.opener.addheaders = [('User-agent', USER_AGENT)]
         
 
+    @property
+    def statistics(self):
+        return '''\
+Total runtime: %d min
+Pages processed: %d
+Average: %.3f Pages/s %.3f Pages/min 
+''' % (self.runtime/60.0, len(self.handled_urls),
+       self.parse_average, self.parse_average*60)
+    
     def run(self):
         ''' Fetches URLs from the admin and process them
         until he returns ``None``.
@@ -213,12 +222,7 @@ if __name__ == '__main__':
             time.sleep(5)
     except KeyboardInterrupt:
         admin.stop()
-        with open('urls.log', 'w') as fobj:
-            print >> fobj, '''\
-Total runtime: %d min
-Pages processed: %d
-Average: %.3f Pages/s %.3f Pages/min 
-''' % (admin.runtime/60.0, len(admin.handled_urls),
-       admin.parse_average, admin.parse_average*60)
+        with open('crawler.log', 'w') as fobj:
+            print >> fobj, admin.statistics
             for url in admin.handled_urls:
                 print >> fobj, 'Processed:', url
