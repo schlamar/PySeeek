@@ -38,11 +38,10 @@ def parse_content_type(response):
     except KeyError:
         raise URLError('No Content-Type defined.')
     try:
-        ctype = ctype.split(';')[0]
+        return ctype.split(';')[0]
     except IndexError:
         raise URLError('Could not parse Content-Type: "%s"' % ctype)
         
-    return ctype
     
 def tokenize(text):
     ''' Returns a generator to iterate over the words 

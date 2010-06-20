@@ -1,5 +1,10 @@
 syntax: glob
-res/
-nbproject/
-pyseeek/urls.log
 *.pyc
+
+res/
+.settings/
+
+pyseeek/temp.db
+pyseeek/urls.log
+.project
+.pydevproject
