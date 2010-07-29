@@ -14,7 +14,10 @@ import re
 import urllib
 import urlparse
 
+from collections import defaultdict
 from urllib2 import URLError
+
+from pyseeek.settings import WORD_PATTERN
 
 def normalize_url(url):
     ''' Modified from `werkzeug.urls.url_fix`. 
@@ -43,12 +46,26 @@ def parse_content_type(response):
         raise URLError('Could not parse Content-Type: "%s"' % ctype)
         
     
-def tokenize(text):
+def _tokenize(text):
     ''' Returns a generator to iterate over the words 
     of the given text. 
     
     :param text: text to extract tokens from.
     '''
-    pattern = re.compile(r'[A-Za-z]{3,}')
+    pattern = re.compile(WORD_PATTERN)
     for match in pattern.finditer(text):
         yield match.group(0).lower()
+        
+def count_words(text):
+    ''' Returns a dictionary of all words in the text and the counter.
+
+    :param text: text to count words
+    :return: dictionary with word as key and counter as value.
+    
+    :TODO: stemming
+    '''
+    word_counter = defaultdict(int)
+    for word in _tokenize(text):
+        word_counter[word] += 1
+    return word_counter
+    

@@ -22,10 +22,10 @@ from urllib2 import build_opener, URLError, HTTPError
 
 from lxml import html
 
-from utils import normalize_url, parse_content_type
+from pyseeek.db import MongoConnector
+from pyseeek.utils import normalize_url, parse_content_type
+from pyseeek.settings import USER_AGENT, NUMBER_CRAWLERS
 
-NUMBER_CRAWLERS = 8
-USER_AGENT = 'PySeeek-Bot'
 
 socket.setdefaulttimeout(30)
     
@@ -70,6 +70,8 @@ class CrawlerAdministrator(object):
         
         self.start = 0.0
         self.stopping = False
+        
+        self.conn = MongoConnector()
 
     @property
     def runtime(self):
@@ -83,6 +85,16 @@ class CrawlerAdministrator(object):
         ''' Returns the average of processed pages per second. '''
         with self.lock_handled_urls:
             return len(self.handled_urls) / self.runtime
+        
+    @property
+    def statistics(self):
+        ''' Returns some crawler statistics. '''
+        return '''\
+Total runtime: %d min
+Pages processed: %d
+Average: %.3f Pages/s %.3f Pages/min 
+''' % (self.runtime/60.0, len(self.handled_urls),
+       self.parse_average, self.parse_average*60)
         
 
     def get_url_to_process(self):
@@ -148,15 +160,6 @@ class Crawler(Thread):
         self.opener = build_opener()
         self.opener.addheaders = [('User-agent', USER_AGENT)]
         
-
-    @property
-    def statistics(self):
-        return '''\
-Total runtime: %d min
-Pages processed: %d
-Average: %.3f Pages/s %.3f Pages/min 
-''' % (self.runtime/60.0, len(self.handled_urls),
-       self.parse_average, self.parse_average*60)
     
     def run(self):
         ''' Fetches URLs from the admin and process them
@@ -176,7 +179,10 @@ Average: %.3f Pages/s %.3f Pages/min
                 self.admin.handled_urls.add(url)
             if links is not None:
                 self.admin.add_urls(links)
-
+            
+            if all((url, title, content)):
+                self.admin.conn.insert_page(url, title, content)
+            
             url = self.admin.get_url_to_process()
 
     def parse_page(self, url):
@@ -216,7 +222,7 @@ Average: %.3f Pages/s %.3f Pages/min
 def start_crawling(urls):
     ''' Starts the crawler administrator with the given URLs
     and runs a loop waiting for  ``KeyboardInterrupt`` afterwards.
-    On interrput, it stops the crawlers and logs some data.
+    On interrupt, it stops the crawlers and logs some data.
     
      :param urls: list of URLs which should be crawled.
     '''
