@@ -8,3 +8,4 @@ pyseeek/temp.db
 pyseeek/urls.log
 .project
 .pydevproject
+glob:crawler.log
