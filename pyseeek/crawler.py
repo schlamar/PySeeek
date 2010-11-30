@@ -72,6 +72,16 @@ class CrawlerAdministrator(object):
         self.stopping = False
         
         self.conn = MongoConnector()
+        for page in self.conn.db.pages.find():
+            self.handled_urls.add(page['url'])
+        self.num_previous_urls = len(self.handled_urls)
+        
+    @property
+    def num_handled_urls(self):
+        ''' Returns number of handled URLs '''
+        with self.lock_handled_urls:
+            return (len(self.handled_urls) - 
+                    self.num_previous_urls)
 
     @property
     def runtime(self):
@@ -83,8 +93,7 @@ class CrawlerAdministrator(object):
     @property
     def parse_average(self):
         ''' Returns the average of processed pages per second. '''
-        with self.lock_handled_urls:
-            return len(self.handled_urls) / self.runtime
+        return self.num_handled_urls / self.runtime
         
     @property
     def statistics(self):
@@ -93,7 +102,7 @@ class CrawlerAdministrator(object):
 Total runtime: %d min
 Pages processed: %d
 Average: %.3f Pages/s %.3f Pages/min 
-''' % (self.runtime/60.0, len(self.handled_urls),
+''' % (self.runtime/60.0, self.num_handled_urls, 
        self.parse_average, self.parse_average*60)
         
 
@@ -170,7 +179,8 @@ class Crawler(Thread):
             try:
                 title, content, links = self.parse_page(url)
             except (URLError, HTTPError, httplib.InvalidURL,
-                    UnicodeDecodeError, socket.error, socket.timeout):
+                    UnicodeDecodeError, socket.error, 
+                    socket.timeout, ValueError):
                 with self.admin.lock_invalid_urls:
                     self.admin.invalid_urls.add(url)
                 url = self.admin.get_url_to_process()
@@ -242,3 +252,4 @@ def start_crawling(urls):
 if __name__ == '__main__':
     start_crawling(['http://web.de/', 'http://www.welt.de/',
                     'http://www.bild.de/'])
+
