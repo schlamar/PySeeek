@@ -5,7 +5,6 @@
     ~~~~~~~~~~~~~~~
 
     This module is responsible for crawling pages.
-    See the __main__ section for basic usage.
     
     :copyright: (c) 2010 by Marc Schlaich
     :license: MIT, see LICENSE for more details.
@@ -27,7 +26,7 @@ from pyseeek.utils import normalize_url, parse_content_type
 from pyseeek.settings import USER_AGENT, NUMBER_CRAWLERS
 
 
-socket.setdefaulttimeout(30)
+socket.setdefaulttimeout(10)
     
 class Host(object):
     ''' Represents one host. Responsible for parsing and analyzing
@@ -57,10 +56,8 @@ class CrawlerAdministrator(object):
     '''
     def __init__(self, urls):
         self.crawlers = list()
-        self.lock_urls = Lock()
-        self.lock_invalid_urls = Lock()
-        self.lock_handled_urls = Lock()
-        
+        self.lock = Lock()
+                
         self.hosts = dict()
         self.urls = set()
         self.handled_urls = set()
@@ -79,7 +76,7 @@ class CrawlerAdministrator(object):
     @property
     def num_handled_urls(self):
         ''' Returns number of handled URLs '''
-        with self.lock_handled_urls:
+        with self.lock:
             return (len(self.handled_urls) - 
                     self.num_previous_urls)
 
@@ -113,7 +110,7 @@ Average: %.3f Pages/s %.3f Pages/min
         if self.stopping:
             return None
         try:
-            with self.lock_urls:
+            with self.lock:
                 return self.urls.pop()
         except KeyError:
             return None
@@ -127,16 +124,15 @@ Average: %.3f Pages/s %.3f Pages/min
         :param urls: iterable of URLs to add.
         '''
         for url in urls:
-            with self.lock_handled_urls:
+            with self.lock:
                 if url in self.handled_urls:
                     continue
 
-            with self.lock_invalid_urls:
                 if url in self.invalid_urls:
                     continue
 
             hostname = urlparse.urlparse(url).hostname
-            with self.lock_urls:
+            with self.lock:
                 try:
                     host = self.hosts[hostname]
                 except KeyError:
@@ -181,11 +177,11 @@ class Crawler(Thread):
             except (URLError, HTTPError, httplib.InvalidURL,
                     UnicodeDecodeError, socket.error, 
                     socket.timeout, ValueError):
-                with self.admin.lock_invalid_urls:
+                with self.admin.lock:
                     self.admin.invalid_urls.add(url)
                 url = self.admin.get_url_to_process()
                 continue
-            with self.admin.lock_handled_urls:
+            with self.admin.lock:
                 self.admin.handled_urls.add(url)
             if links is not None:
                 self.admin.add_urls(links)
@@ -197,7 +193,6 @@ class Crawler(Thread):
 
     def parse_page(self, url):
         ''' Opens and parses the given URL with ``lxml``.
-
         :returns: a tuple with 3 elements:
                   1. the page title
                   2. content of the page
@@ -245,11 +240,4 @@ def start_crawling(urls):
         admin.stop()
         with open('crawler.log', 'w') as fobj:
             print >> fobj, admin.statistics
-            for url in admin.handled_urls:
-                print >> fobj, 'Processed:', url
-    
-
-if __name__ == '__main__':
-    start_crawling(['http://web.de/', 'http://www.welt.de/',
-                    'http://www.bild.de/'])
 
