@@ -149,6 +149,8 @@ Average: %.3f Pages/s %.3f Pages/min
             crawler = Crawler(self)
             self.crawlers.append(crawler)
             crawler.start()
+            # wait to fill url list for next crawler
+            time.sleep(3)
 
     def stop(self):
         ''' Stops the crawling process. '''
@@ -175,7 +177,7 @@ class Crawler(Thread):
             try:
                 title, content, links = self.parse_page(url)
             except (URLError, HTTPError, httplib.InvalidURL, ValueError,
-                    UnicodeDecodeError, socket.error, BadStatusLine, 
+                    UnicodeDecodeError, socket.error, httplib.BadStatusLine, 
                     socket.timeout):
                 with self.admin.lock:
                     self.admin.invalid_urls.add(url)
