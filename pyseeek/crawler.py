@@ -174,9 +174,9 @@ class Crawler(Thread):
         while url is not None:
             try:
                 title, content, links = self.parse_page(url)
-            except (URLError, HTTPError, httplib.InvalidURL,
-                    UnicodeDecodeError, socket.error, 
-                    socket.timeout, ValueError):
+            except (URLError, HTTPError, httplib.InvalidURL, ValueError,
+                    UnicodeDecodeError, socket.error, BadStatusLine, 
+                    socket.timeout):
                 with self.admin.lock:
                     self.admin.invalid_urls.add(url)
                 url = self.admin.get_url_to_process()
