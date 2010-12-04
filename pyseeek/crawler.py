@@ -72,7 +72,9 @@ class CrawlerAdministrator(object):
         for page in self.conn.db.pages.find():
             self.handled_urls.add(page['url'])
         self.num_previous_urls = len(self.handled_urls)
-        
+		
+		print 'Admin initialized.'
+
     @property
     def num_handled_urls(self):
         ''' Returns number of handled URLs '''
@@ -151,6 +153,7 @@ Average: %.3f Pages/s %.3f Pages/min
             crawler.start()
             # wait to fill url list for next crawler
             time.sleep(3)
+		print '%s crawler started.' % NUMBER_CRAWLERS
 
     def stop(self):
         ''' Stops the crawling process. '''
