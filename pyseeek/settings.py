@@ -16,3 +16,4 @@ DB_PORT = 27017
 WORD_PATTERN = '[A-Za-z]{3,}'
 NUMBER_CRAWLERS = 8
 USER_AGENT = 'PySeeek-Bot'
+
