@@ -14,12 +14,14 @@ def search(search_strings):
 def clear_pages():
     conn = Connection()
     db = conn.pyseeek
-    db.pages.remove()
+    db.pages.drop()
 
 def crawl():
     start_crawling(['http://web.de/', 'http://www.welt.de/',                    
                     'http://www.bild.de/'])
 
+def set_index():
+    db.pages.ensureIndex({ "words.word": 1 });
         
 if __name__ == '__main__':
     if len(sys.argv) > 1:
@@ -29,8 +31,9 @@ if __name__ == '__main__':
             search(sys.argv[2:])
         elif sys.argv[1] == 'clear':
             clear_pages()
+        elif sys.argv[1] == 'index':
+            set_index()
                     
                     
 # db.pages.find({'words.word': 'test'}).count()
 # db.pages.find({"words.word": {$in: ["test", "hallo" , "heute"]}}).count()
-# db.pages.ensureIndex( { "words.word": 1 } );
