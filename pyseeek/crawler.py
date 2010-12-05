@@ -181,7 +181,7 @@ class Crawler(Thread):
                 title, content, links = self.parse_page(url)
             except (URLError, HTTPError, httplib.InvalidURL, ValueError,
                     UnicodeDecodeError, socket.error, httplib.BadStatusLine, 
-                    socket.timeout):
+                    socket.timeout, httplib.IncompleteRead):
                 with self.admin.lock:
                     self.admin.invalid_urls.add(url)
                 url = self.admin.get_url_to_process()
