@@ -6,7 +6,7 @@
 
     Settings for PySeeek.
     
-    :copyright: (c) 2010 by Marc Schlaich
+    :copyright: (c) 2011 by Marc Schlaich
     :license: MIT, see LICENSE for more details.
 '''
 
