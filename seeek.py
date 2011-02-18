@@ -1,4 +1,15 @@
 #!/usr/bin/env python
+# coding: utf-8
+
+'''
+    seeek
+    ~~~~~
+
+    Simple CLI for pyseeek.
+    
+    :copyright: (c) 2011 by Marc Schlaich
+    :license: MIT, see LICENSE for more details.
+'''
 
 import sys
 
