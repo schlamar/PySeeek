@@ -54,17 +54,20 @@ class CrawlerAdministrator(object):
     
     :param urls: list of URLs which should be crawled.
     '''
-    def __init__(self, urls):
+    def __init__(self, urls, number_crawlers=NUMBER_CRAWLERS):
         self.crawlers = list()
         self.lock = Lock()
-                
+        
+        # begin: shared data        
         self.hosts = dict()
         self.urls = set()
         self.handled_urls = set()
         self.invalid_urls = set()
+        # end: shared data
         
         self.add_urls((normalize_url(url) for url in urls))
         
+        self.number_crawlers = number_crawlers
         self.start = 0.0
         self.stopping = False
         
@@ -146,13 +149,13 @@ Average: %.3f Pages/s %.3f Pages/min
        
     def crawl(self):
         ''' Starts the crawler threads. '''
-        for _ in range(NUMBER_CRAWLERS):
+        for _ in range(self.number_crawlers):
             crawler = Crawler(self)
             self.crawlers.append(crawler)
             crawler.start()
             # wait to fill url list for next crawler
-            time.sleep(3)
-        print '%s crawler started.' % NUMBER_CRAWLERS
+            time.sleep(2)
+        print '%s crawlers started.' % self.number_crawlers
         self.start = time.time()
 
     def stop(self):
